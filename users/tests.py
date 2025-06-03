@@ -1,26 +1,35 @@
-from django.test import TestCase
-from django.contrib.auth import get_user_model
+from rest_framework.test import APITestCase
+from django.urls import reverse
+from users.models import User
 
-User = get_user_model()
-
-class UserModelTest(TestCase):
+class UserAPIViewTestCase(APITestCase):
     def setUp(self):
+        self.signup_url = reverse('user-signup')
+        self.login_url = reverse('user-login')
         self.user = User.objects.create_user(
-            email="test@example.com",
-            nickname="tester",
-            password="securepassword"
+            nickname='testuser',
+            email='test@example.com',
+            password='testpass123'
         )
 
-    def test_user_manager_create_user(self):
-        self.assertEqual(self.user.email, "test@example.com")
-        self.assertTrue(self.user.check_password("securepassword"))
-        self.assertFalse(self.user.is_superuser)
+    def test_user_signup(self):
+        response = self.client.post(self.signup_url, {
+            'nickname': 'newuser',
+            'email': 'new@example.com',
+            'password': 'newpass123'
+        })
+        self.assertEqual(response.status_code, 201)
 
-    def test_user_manager_create_superuser(self):
-        admin = User.objects.create_superuser(
-            email="admin@example.com",
-            nickname="admin",
-            password="adminpassword"
-        )
-        self.assertTrue(admin.is_superuser)
-        self.assertTrue(admin.is_staff)
+    def test_user_login(self):
+        response = self.client.post(self.login_url, {
+            'email': 'test@example.com',
+            'password': 'testpass123'
+        })
+        self.assertEqual(response.status_code, 200)
+
+    def test_user_login_invalid_credentials(self):
+        response = self.client.post(self.login_url, {
+            'email': 'test@example.com',
+            'password': 'wrongpass'
+        })
+        self.assertEqual(response.status_code, 400)

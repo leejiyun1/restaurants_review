@@ -1,29 +1,54 @@
-from django.test import TestCase
-from django.contrib.auth import get_user_model
+from rest_framework.test import APITestCase
+from django.urls import reverse
+from users.models import User
 from restaurants.models import Restaurant
 from reviews.models import Review
 
-User = get_user_model()
-
-class ReviewModelTest(TestCase):
+class ReviewAPIViewTestCase(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            email="reviewer@example.com",
-            nickname="reviewer",
-            password="password"
+            nickname='testuser',
+            email='test@example.com',
+            password='testpass123'
         )
+        self.client.login(email='test@example.com', password='testpass123')
+
         self.restaurant = Restaurant.objects.create(
-            name="이탈리안 레스토랑",
-            address="서울시 송파구",
-            contact="02-999-8888"
+            name='Test Place',
+            address='123 Road',
+            contact='010-1234-5678'
         )
         self.review = Review.objects.create(
             user=self.user,
             restaurant=self.restaurant,
-            title="맛있어요",
-            comment="정말 훌륭한 음식이었습니다."
+            title='Good!',
+            comment='Nice food'
         )
 
-    def test_create_review(self):
-        self.assertEqual(Review.objects.count(), 1)
-        self.assertEqual(self.review.title, "맛있어요")
+    def test_get_review_list(self):
+        url = reverse('review-list', args=[self.restaurant.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_post_review(self):
+        url = reverse('review-list', args=[self.restaurant.id])
+        response = self.client.post(url, {
+            'title': 'Yummy',
+            'comment': 'Very nice!'
+        })
+        self.assertEqual(response.status_code, 201)
+
+    def test_get_review_detail(self):
+        url = reverse('review-detail', args=[self.review.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_update_review(self):
+        url = reverse('review-detail', args=[self.review.id])
+        response = self.client.patch(url, {'title': 'Updated Title'})
+        self.assertEqual(response.status_code, 200)
+
+    def test_delete_review(self):
+        url = reverse('review-detail', args=[self.review.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
